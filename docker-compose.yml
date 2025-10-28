@@ -1,0 +1,9 @@
+services:
+  ipbot:
+    build: ./docker
+    container_name: ipbot
+    restart: always
+    volumes:
+      - ./.env:/app/.env:ro
+    environment:
+      - TZ=UTC
