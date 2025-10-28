@@ -1,6 +1,6 @@
 # IP Bot
 
-[![Build and Publish Docker Image](https://github.com/elisey/ipbot/actions/workflows/ci-docker-publish.yml/badge.svg)](https://github.com/elisey/ipbot/actions/workflows/ci-docker-publish.yml)
+[![Release - Docker Build and Publish](https://github.com/elisey/ipbot/actions/workflows/ci-docker-publish.yml/badge.svg)](https://github.com/elisey/ipbot/actions/workflows/ci-docker-publish.yml)
 
 A simple async Telegram bot that responds to `/ip` command with your public IP address.
 
@@ -317,15 +317,55 @@ uv run pytest tests/test_bot.py -v
 uv sync
 ```
 
-## CI/CD Pipeline
+## Release Process
 
-The project includes a GitHub Actions workflow that:
-- Triggers on push to `main` branch
-- Builds the Docker image
-- Pushes to GitHub Container Registry (ghcr.io)
-- Tags with commit SHA and `latest`
+This project uses automated releases via GitHub Actions. When you push a version tag, the workflow automatically builds and publishes Docker images to GitHub Container Registry.
 
-Images are available at: `ghcr.io/elisey/ipbot:latest`
+### Creating a New Release
+
+1. **Ensure all changes are committed and pushed to main:**
+   ```bash
+   git status
+   git push
+   ```
+
+2. **Create and push a version tag:**
+   ```bash
+   # Create a tag (use semantic versioning: v0.1.0, v1.2.3, etc.)
+   git tag v0.1.1
+
+   # Push the tag to trigger the release workflow
+   git push origin v0.1.1
+   ```
+
+3. **Monitor the workflow:**
+   - Visit: `https://github.com/elisey/ipbot/actions`
+   - The "Release - Docker Build and Publish" workflow will automatically:
+     - Build the Docker image
+     - Push to GitHub Container Registry with two tags:
+       - Semantic version (e.g., `0.1.1`)
+       - `latest`
+
+4. **Published images will be available at:**
+   ```
+   ghcr.io/elisey/ipbot:0.1.1
+   ghcr.io/elisey/ipbot:latest
+   ```
+
+### Using Released Images
+
+Pull and run the latest release:
+
+```bash
+docker pull ghcr.io/elisey/ipbot:latest
+docker compose up -d
+```
+
+Or use a specific version:
+
+```bash
+docker pull ghcr.io/elisey/ipbot:0.1.1
+```
 
 ## License
 
