@@ -5,7 +5,9 @@
       "Bash(tree:*)",
       "Bash(uv run pytest:*)",
       "Bash(task check:*)",
-      "Bash(task format)"
+      "Bash(task format)",
+      "Bash(task fix:*)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []
