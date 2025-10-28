@@ -21,7 +21,6 @@ ENV/
 
 # UV
 .uv/
-uv.lock
 
 # Testing
 tests/
