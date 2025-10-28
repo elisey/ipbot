@@ -1,0 +1,40 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Run bot locally with uv
+    cmds:
+      - uv run python -m ipbot.main
+
+  test:
+    desc: Run pytest with asyncio support
+    cmds:
+      - uv run pytest tests/ -v
+
+  lint:
+    desc: Run ruff check on source code
+    cmds:
+      - uv run ruff check src/ tests/
+
+  format:
+    desc: Run ruff format on source code
+    cmds:
+      - uv run ruff format src/ tests/
+
+  format-check:
+    desc: Check formatting without making changes
+    cmds:
+      - uv run ruff format --check src/ tests/
+
+  fix:
+    desc: Fix formatting and fixable lint issues
+    cmds:
+      - uv run ruff format src/ tests/
+      - uv run ruff check --fix src/ tests/
+
+  check:
+    desc: Run format check, lint check, and tests
+    cmds:
+      - task: format-check
+      - task: lint
+      - task: test
