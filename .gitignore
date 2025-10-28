@@ -63,9 +63,7 @@ dmypy.json
 # Environment variables
 .env
 .env.*
-
-# Configuration (keep example files, ignore actual config)
-config/config.yaml
+!.env.example
 
 # Docker
 *.dockerignore.bak
