@@ -8,6 +8,27 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 logger = logging.getLogger(__name__)
 
 
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle the /start command.
+
+    Sends a greeting message and basic usage info.
+    """
+    logger.info("start command called")
+    if not update.effective_user or not update.message:
+        return
+
+    config = context.bot_data.get("config")
+
+    # Optional: customize reply for authorized user
+    if config and update.effective_user.id == config.telegram_owner_id:
+        await update.message.reply_text(
+            "👋 Hello! You are authorized to use this bot.\n"
+            "Use /ip to get the current public IP address."
+        )
+    else:
+        await update.message.reply_text("Unauthorized")
+
+
 async def ip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /ip command.
 
@@ -17,6 +38,7 @@ async def ip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         update: The incoming update containing the message.
         context: The context containing bot_data with config and fetcher.
     """
+    logger.info("ip command called")
     if not update.effective_user or not update.message:
         return
 
@@ -50,5 +72,6 @@ def setup_handlers(application: Application) -> None:
     Args:
         application: The Telegram Application instance to register handlers with.
     """
+    application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("ip", ip_command))
     logger.info("Registered /ip command handler")

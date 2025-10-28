@@ -1,8 +1,6 @@
 """Tests for the main application entry point."""
 
-from unittest.mock import AsyncMock, Mock, patch
-
-import pytest
+from unittest.mock import Mock, patch
 
 from ipbot.main import build_application, main
 
@@ -82,18 +80,17 @@ class TestBuildApplication:
 class TestMain:
     """Tests for the main function."""
 
-    @pytest.mark.asyncio
     @patch("ipbot.main.build_application")
     @patch("ipbot.main.logger")
-    async def test_main_runs_application(self, mock_logger, mock_build_app):
+    def test_main_runs_application(self, mock_logger, mock_build_app):
         """Test that main builds and runs the application."""
         # Setup mocks
         mock_application = Mock()
-        mock_application.run_polling = AsyncMock()
+        mock_application.run_polling = Mock()
         mock_build_app.return_value = mock_application
 
         # Call main
-        await main()
+        main()
 
         # Verify application was built
         mock_build_app.assert_called_once()
@@ -104,18 +101,17 @@ class TestMain:
         # Verify logging occurred
         assert mock_logger.info.call_count >= 1
 
-    @pytest.mark.asyncio
     @patch("ipbot.main.build_application")
     @patch("ipbot.main.logger")
-    async def test_main_logs_startup(self, mock_logger, mock_build_app):
+    def test_main_logs_startup(self, mock_logger, mock_build_app):
         """Test that main logs startup message."""
         # Setup mocks
         mock_application = Mock()
-        mock_application.run_polling = AsyncMock()
+        mock_application.run_polling = Mock()
         mock_build_app.return_value = mock_application
 
         # Call main
-        await main()
+        main()
 
         # Verify startup logging
         startup_calls = [
@@ -123,18 +119,17 @@ class TestMain:
         ]
         assert len(startup_calls) > 0
 
-    @pytest.mark.asyncio
     @patch("ipbot.main.build_application")
     @patch("ipbot.main.logger")
-    async def test_main_logs_shutdown(self, mock_logger, mock_build_app):
+    def test_main_logs_shutdown(self, mock_logger, mock_build_app):
         """Test that main logs shutdown message."""
         # Setup mocks
         mock_application = Mock()
-        mock_application.run_polling = AsyncMock()
+        mock_application.run_polling = Mock()
         mock_build_app.return_value = mock_application
 
         # Call main
-        await main()
+        main()
 
         # Verify shutdown logging
         shutdown_calls = [

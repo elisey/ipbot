@@ -1,6 +1,8 @@
 services:
   ipbot:
-    build: ./docker
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     container_name: ipbot
     restart: always
     volumes:

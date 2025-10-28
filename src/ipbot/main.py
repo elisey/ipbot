@@ -1,6 +1,5 @@
 """Main entry point for the Telegram IP bot application."""
 
-import asyncio
 import logging
 
 from telegram.ext import Application, ApplicationBuilder
@@ -41,7 +40,7 @@ def build_application() -> Application:
     return application
 
 
-async def main() -> None:
+def main() -> None:
     """Run the Telegram bot application.
 
     This is the main entry point that starts the bot using long polling.
@@ -53,7 +52,7 @@ async def main() -> None:
 
     # Start polling
     logger.info("Bot is running. Press Ctrl+C to stop.")
-    await application.run_polling()
+    application.run_polling()
 
     logger.info("Bot shutdown complete")
 
@@ -63,4 +62,4 @@ if __name__ == "__main__":
     setup_logging()
 
     # Run the bot
-    asyncio.run(main())
+    main()
