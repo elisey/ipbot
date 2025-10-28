@@ -4,6 +4,8 @@
 
 A simple async Telegram bot that responds to `/ip` command with your public IP address.
 
+![chat](doc/chat.png)
+
 ## Features
 
 - Async Telegram bot using python-telegram-bot
