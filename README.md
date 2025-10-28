@@ -1,6 +1,6 @@
 # IP Bot
 
-[![Build and Publish Docker Image](https://github.com/elisei/ip_bot/actions/workflows/ci-docker-publish.yml/badge.svg)](https://github.com/elisei/ip_bot/actions/workflows/ci-docker-publish.yml)
+[![Build and Publish Docker Image](https://github.com/elisey/ipbot/actions/workflows/ci-docker-publish.yml/badge.svg)](https://github.com/elisey/ipbot/actions/workflows/ci-docker-publish.yml)
 
 A simple async Telegram bot that responds to `/ip` command with your public IP address.
 
@@ -60,8 +60,8 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 ### 2. Clone and Install Dependencies
 
 ```bash
-git clone https://github.com/elisei/ip_bot.git
-cd ip_bot
+git clone https://github.com/elisey/ipbot.git
+cd ipbot
 uv sync
 ```
 
@@ -169,7 +169,7 @@ Pull the latest image from GitHub Container Registry:
 
 ```bash
 # Pull the image
-docker pull ghcr.io/elisei/ip_bot:latest
+docker pull ghcr.io/elisey/ipbot:latest
 
 # Run with docker compose (using the pulled image)
 docker compose up -d
@@ -203,7 +203,7 @@ docker compose down
 ## Project Structure
 
 ```
-ip_bot/
+ipbot/
 ├── .github/
 │   └── workflows/
 │       └── ci-docker-publish.yml  # CI/CD pipeline
@@ -325,7 +325,7 @@ The project includes a GitHub Actions workflow that:
 - Pushes to GitHub Container Registry (ghcr.io)
 - Tags with commit SHA and `latest`
 
-Images are available at: `ghcr.io/elisei/ip_bot:latest`
+Images are available at: `ghcr.io/elisey/ipbot:latest`
 
 ## License
 

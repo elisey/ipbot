@@ -8,7 +8,7 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 # Copy dependency files
-COPY ../pyproject.toml ../uv.lock ./
+COPY pyproject.toml uv.lock ./
 
 # Sync dependencies (no dev dependencies)
 RUN uv sync --frozen --no-dev
@@ -23,7 +23,7 @@ WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 
 # Copy application source code
-COPY ../src/ipbot ./ipbot
+COPY src/ipbot ./ipbot
 
 # Create non-root user
 RUN useradd -m -u 1000 ipbot && \
