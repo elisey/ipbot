@@ -137,9 +137,11 @@ class TestSetupHandlers:
 
         setup_handlers(mock_application)
 
-        # Verify add_handler was called
-        mock_application.add_handler.assert_called_once()
+        # Verify add_handler was called twice (for /start and /ip)
+        assert mock_application.add_handler.call_count == 2
 
-        # Verify it's a CommandHandler
-        handler_call = mock_application.add_handler.call_args[0][0]
-        assert isinstance(handler_call, CommandHandler)
+        # Verify both are CommandHandlers
+        calls = mock_application.add_handler.call_args_list
+        for call in calls:
+            handler = call[0][0]
+            assert isinstance(handler, CommandHandler)
