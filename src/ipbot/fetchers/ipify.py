@@ -1,8 +1,8 @@
 """IP fetching strategy using the ipify.org API."""
 
-import httpx
-
 from ipbot.fetchers.base import FetchStrategy
+from ipbot.fetchers.exceptions import FetcherParsingError
+from ipbot.fetchers.http_fetcher import HttpFetcher
 
 
 class IpifyStrategy(FetchStrategy):
@@ -22,26 +22,18 @@ class IpifyStrategy(FetchStrategy):
             str: The public IP address as a string.
 
         Raises:
-            Exception: If the IP address cannot be fetched due to network
-                      errors, timeouts, or invalid response format.
+            FetcherHTTPError: If the request fails due to network errors,
+                             timeouts, or HTTP errors.
+            FetcherParsingError: If the response format is invalid.
         """
-        try:
-            async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
-                response = await client.get(self.IPIFY_URL)
-                response.raise_for_status()
+        http_fetcher = HttpFetcher(timeout=self.TIMEOUT)
+        response = await http_fetcher.fetch(self.IPIFY_URL, "ipify")
 
-                data = response.json()
+        data = response.json()
 
-                if "ip" not in data:
-                    raise Exception(
-                        f"Invalid response format from ipify: missing 'ip' field in {data}"
-                    )
+        if "ip" not in data:
+            raise FetcherParsingError(
+                f"Invalid response format from ipify: missing 'ip' field in {data}"
+            )
 
-                return data["ip"]
-
-        except httpx.HTTPError as e:
-            raise Exception(f"Failed to fetch IP from ipify: {e}") from e
-        except Exception as e:
-            if "Invalid response format" in str(e):
-                raise
-            raise Exception(f"Failed to fetch IP from ipify: {e}") from e
+        return data["ip"]

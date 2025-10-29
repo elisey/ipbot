@@ -1,8 +1,8 @@
 """IP fetching strategy using the ifconfig.me API."""
 
-import httpx
-
 from ipbot.fetchers.base import FetchStrategy
+from ipbot.fetchers.exceptions import FetcherParsingError
+from ipbot.fetchers.http_fetcher import HttpFetcher
 
 
 class IfconfigStrategy(FetchStrategy):
@@ -22,24 +22,16 @@ class IfconfigStrategy(FetchStrategy):
             str: The public IP address as a string.
 
         Raises:
-            Exception: If the IP address cannot be fetched due to network
-                      errors, timeouts, or invalid response format.
+            FetcherHTTPError: If the request fails due to network errors,
+                             timeouts, or HTTP errors.
+            FetcherParsingError: If the response format is invalid.
         """
-        try:
-            async with httpx.AsyncClient(timeout=self.TIMEOUT) as client:
-                response = await client.get(self.IFCONFIG_URL)
-                response.raise_for_status()
+        http_fetcher = HttpFetcher(timeout=self.TIMEOUT)
+        response = await http_fetcher.fetch(self.IFCONFIG_URL, "ifconfig.me")
 
-                ip_address = response.text.strip()
+        ip_address = response.text.strip()
 
-                if not ip_address:
-                    raise Exception("Invalid response format from ifconfig.me: empty response")
+        if not ip_address:
+            raise FetcherParsingError("Invalid response format from ifconfig.me: empty response")
 
-                return ip_address
-
-        except httpx.HTTPError as e:
-            raise Exception(f"Failed to fetch IP from ifconfig.me: {e}") from e
-        except Exception as e:
-            if "Invalid response format" in str(e):
-                raise
-            raise Exception(f"Failed to fetch IP from ifconfig.me: {e}") from e
+        return ip_address
