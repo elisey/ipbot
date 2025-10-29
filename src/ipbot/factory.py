@@ -1,7 +1,10 @@
 """Factory for creating IP fetcher strategy instances."""
 
 from ipbot.fetchers.base import FetchStrategy
+from ipbot.fetchers.identme import IdentMeStrategy
+from ipbot.fetchers.ifconfig import IfconfigStrategy
 from ipbot.fetchers.ipify import IpifyStrategy
+from ipbot.fetchers.ipinfo import IpinfoStrategy
 
 
 def create_fetcher(strategy_name: str) -> FetchStrategy:
@@ -17,7 +20,10 @@ def create_fetcher(strategy_name: str) -> FetchStrategy:
         ValueError: If the strategy name is unknown or not supported.
     """
     strategies = {
+        "identme": IdentMeStrategy,
+        "ifconfig": IfconfigStrategy,
         "ipify": IpifyStrategy,
+        "ipinfo": IpinfoStrategy,
     }
 
     strategy_class = strategies.get(strategy_name)
