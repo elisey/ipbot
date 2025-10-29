@@ -8,7 +8,7 @@ Thank you for your interest in contributing to IP Bot! This guide will help you 
 
 ## Development Requirements
 
-- Python 3.13+
+- Python 3.14+
 - UV package manager
 - Git
 - Docker and docker-compose (optional, for testing deployments)
