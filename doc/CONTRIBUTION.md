@@ -111,6 +111,7 @@ Pre-commit hooks are configured to run automatically on git commit:
 
 - Ruff linter checks
 - Ruff formatter checks
+- Unit tests (pytest)
 
 To manually run pre-commit checks:
 
