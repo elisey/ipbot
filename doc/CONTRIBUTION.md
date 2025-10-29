@@ -119,6 +119,18 @@ To manually run pre-commit checks:
 task check
 ```
 
+### Dependency Management
+
+This project uses [Renovate](https://docs.renovatebot.com/) for automated dependency updates:
+
+- **Automatic updates**: Renovate checks for updates weekly (every Monday)
+- **Grouped PRs**: Non-major updates are grouped into a single PR to reduce noise
+- **Separate PRs**: Major version updates get individual PRs for careful review
+- **Monitors**: Python packages, GitHub Actions, pre-commit hooks, and Docker base images
+- **Manual merge**: All PRs require manual review and merge after pre-commit hooks pass
+
+Renovate PRs will automatically trigger pre-commit hooks (ruff formatting and pytest), ensuring all dependency updates are validated before merge.
+
 ## Project Structure
 
 ```

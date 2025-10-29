@@ -2,5 +2,80 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
-  ]
+  ],
+  "schedule": [
+    "every monday"
+  ],
+  "timezone": "UTC",
+  "semanticCommits": "enabled",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 0,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "every monday"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": "Group all non-major updates together",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "groupName": "all non-major dependencies",
+      "groupSlug": "all-minor-patch"
+    },
+    {
+      "description": "Separate PR for each major update",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "groupName": null
+    },
+    {
+      "description": "Python dependencies via uv",
+      "matchManagers": [
+        "pep621"
+      ],
+      "rangeStrategy": "bump"
+    },
+    {
+      "description": "Pre-commit hooks",
+      "matchManagers": [
+        "pre-commit"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "GitHub Actions",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "automerge": false,
+      "pinDigests": true
+    },
+    {
+      "description": "Docker images",
+      "matchManagers": [
+        "docker-compose",
+        "dockerfile"
+      ],
+      "automerge": false,
+      "pinDigests": false
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": [
+      "at any time"
+    ]
+  },
+  "pip_requirements": {
+    "fileMatch": [
+      "pyproject.toml"
+    ]
+  }
 }
