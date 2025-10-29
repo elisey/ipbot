@@ -2,6 +2,10 @@
 
 This guide covers deploying the IP Bot to a Linux server using Docker Compose.
 
+**Other Documentation:**
+- [README](../README.md) - Quick start and basic usage
+- [CONTRIBUTION](CONTRIBUTION.md) - Development setup and contributing guidelines
+
 ## Prerequisites
 
 ### Server Requirements
