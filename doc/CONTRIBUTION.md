@@ -50,16 +50,18 @@ Edit `.env` and set your credentials:
 ```bash
 TELEGRAM_TOKEN=your_bot_token_here
 TELEGRAM_OWNER_ID=123456789
-FETCHER_STRATEGY_ORDER=ipify
-SERVER_REPLY_FORMAT=🌐 Your public IP is: {ip}
+FETCHER_STRATEGY_ORDER=all
 ```
 
 **Configuration Options:**
 
 - `TELEGRAM_TOKEN` (required): Your bot token from @BotFather
 - `TELEGRAM_OWNER_ID` (required): Your Telegram user ID - only this user can use the bot
-- `FETCHER_STRATEGY_ORDER` (optional): IP fetching strategy, default: `ipify`
-- `SERVER_REPLY_FORMAT` (optional): Message format, default: `🌐 Your public IP is: {ip}`
+- `FETCHER_STRATEGY_ORDER` (optional): IP fetchers to use, default: `all`
+
+Available IP fetchers: `ipify`, `identme`, `ifconfig`, `ipinfo`, `custom`. The bot queries all configured fetchers in parallel for reliability.
+
+**Using `all` keyword:** Set to `all` to automatically use all available fetchers. This is the default and recommended configuration.
 
 ### 4. Run the Bot Locally
 
@@ -147,10 +149,19 @@ ipbot/
 │   ├── config.py                  # Configuration with Pydantic Settings
 │   ├── logger.py                  # Logging setup
 │   ├── factory.py                 # IP fetcher factory (strategy pattern)
+│   ├── orchestrator.py            # Parallel fetch orchestrator
+│   ├── formatter.py               # Result formatter
+│   ├── result.py                  # Result data models
 │   └── fetchers/
 │       ├── __init__.py
 │       ├── base.py                # FetchStrategy ABC
-│       └── ipify.py               # Ipify strategy implementation
+│       ├── exceptions.py          # Custom exceptions
+│       ├── http_fetcher.py        # Common HTTP helper
+│       ├── ipify.py               # Ipify strategy implementation
+│       ├── custom.py              # Custom strategy implementation
+│       ├── identme.py             # Ident.me strategy implementation
+│       ├── ifconfig.py            # Ifconfig.me strategy implementation
+│       └── ipinfo.py              # Ipinfo.io strategy implementation
 ├── tests/                         # Unit tests with pytest
 ├── docker-compose.yml             # Docker deployment config
 ├── pyproject.toml                 # Project dependencies (UV)
@@ -161,32 +172,77 @@ ipbot/
 
 ## Architecture
 
-The bot uses the **Strategy Pattern** for IP fetching, making it easy to add new IP providers:
+The bot uses the **Strategy Pattern** with **Parallel Orchestration** for resilient IP fetching:
 
-- `FetchStrategy` (ABC): Defines the interface for IP fetching strategies
-- `IpifyStrategy`: Implements fetching from api.ipify.org
-- `IPFetcherFactory`: Creates the appropriate fetcher based on configuration
+### Key Components
+
+- **`FetchStrategy` (ABC)**: Defines the interface for IP fetching strategies with two methods:
+  - `async def get_ip() -> str`: Fetches the IP address
+  - `def get_name() -> str`: Returns the display name of the fetcher
+
+- **Fetcher Implementations**:
+  - `IpifyStrategy`: Fetches from ipify.org (JSON API)
+  - `IdentMeStrategy`: Fetches from ident.me (plain text)
+  - `IfconfigStrategy`: Fetches from ifconfig.me (plain text)
+  - `IpinfoStrategy`: Fetches from ipinfo.io (plain text)
+  - `CustomStrategy`: Fetches from ipinfo.io (plain text)
+
+- **`ParallelFetchOrchestrator`**: Runs all configured fetchers in parallel using `asyncio.gather()`, collects results, and determines consensus
+
+- **`ResultFormatter`**: Formats fetcher results into user-friendly messages with status indicators (🟢/🟡/❌)
+
+- **`HttpFetcher`**: Common HTTP client helper with timeout handling and error categorization
+
+### How Parallel Fetching Works
+
+1. **Initialization** (`main.py`): Creates all fetchers based on config and wraps them in the orchestrator
+2. **Execution** (`bot.py`): When user requests `/ip`, orchestrator runs all fetchers concurrently
+3. **Consensus** (`orchestrator.py`): Compares successful results - all must match for consensus
+4. **Formatting** (`formatter.py`): Displays results with appropriate emoji indicators based on status
 
 ### Adding a New IP Provider
 
 To add a new IP provider:
 
 1. Create a new class inheriting from `FetchStrategy` in `src/ipbot/fetchers/`
-2. Implement the `async def get_ip() -> str` method
-3. Register it in the factory (`src/ipbot/factory.py`)
-4. Add tests for your new strategy
-5. Update documentation
+2. Implement both required methods:
+   - `async def get_ip() -> str` - Fetch and return the IP address
+   - `def get_name() -> str` - Return a display name (e.g., "myservice.com")
+3. Use `HttpFetcher` helper for HTTP requests (handles timeouts and errors)
+4. Register it in the factory (`src/ipbot/factory.py`) in the `STRATEGIES` dictionary
+5. Add comprehensive tests in `tests/test_fetchers.py`
+6. Update documentation
 
 Example:
 
 ```python
 from ipbot.fetchers.base import FetchStrategy
+from ipbot.fetchers.http_fetcher import HttpFetcher
 
 class MyProviderStrategy(FetchStrategy):
+    MY_URL = "https://api.myprovider.com/ip"
+    TIMEOUT = 3.0
+
     async def get_ip(self) -> str:
-        # Your implementation here
-        pass
+        """Fetch IP from my provider."""
+        http_fetcher = HttpFetcher(timeout=self.TIMEOUT)
+        response = await http_fetcher.fetch(self.MY_URL, "myprovider")
+        return response.text.strip()
+
+    def get_name(self) -> str:
+        """Return display name."""
+        return "myprovider.com"
 ```
+
+Then register in `factory.py`:
+```python
+STRATEGIES = {
+    "myprovider": MyProviderStrategy,
+    # ... existing strategies
+}
+```
+
+**Automatic inclusion with `all` keyword:** Once registered, your new fetcher will automatically be included when users set `FETCHER_STRATEGY_ORDER=all` (the default), providing seamless integration.
 
 ## Development Troubleshooting
 
@@ -242,38 +298,7 @@ task dev  # Look for error messages
 
 ## Release Process
 
-This project uses automated releases via GitHub Actions. When you push a version tag, the workflow automatically builds and publishes Docker images to GitHub Container Registry.
-
-### Creating a New Release
-
-1. **Ensure all changes are committed and pushed to main:**
-   ```bash
-   git status
-   git push
-   ```
-
-2. **Create and push a version tag:**
-   ```bash
-   # Create a tag (use semantic versioning: v0.1.0, v1.2.3, etc.)
-   git tag v0.1.1
-
-   # Push the tag to trigger the release workflow
-   git push origin v0.1.1
-   ```
-
-3. **Monitor the workflow:**
-   - Visit: `https://github.com/elisey/ipbot/actions`
-   - The "Release - Docker Build and Publish" workflow will automatically:
-     - Build the Docker image
-     - Push to GitHub Container Registry with two tags:
-       - Semantic version (e.g., `0.1.1`)
-       - `latest`
-
-4. **Published images will be available at:**
-   ```
-   ghcr.io/elisey/ipbot:0.1.1
-   ghcr.io/elisey/ipbot:latest
-   ```
+For detailed instructions on creating and publishing releases, see the [Release Guide](RELEASE.md).
 
 ## Testing Your Changes with Docker
 

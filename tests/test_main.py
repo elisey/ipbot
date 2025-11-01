@@ -9,21 +9,32 @@ class TestBuildApplication:
     """Tests for the build_application function."""
 
     @patch("ipbot.main.BotConfig")
-    @patch("ipbot.main.create_fetcher")
+    @patch("ipbot.main.create_fetchers")
+    @patch("ipbot.main.ParallelFetchOrchestrator")
     @patch("ipbot.main.setup_handlers")
     @patch("ipbot.main.ApplicationBuilder")
     def test_build_application_creates_application(
-        self, mock_app_builder, mock_setup_handlers, mock_create_fetcher, mock_config
+        self,
+        mock_app_builder,
+        mock_setup_handlers,
+        mock_orchestrator_class,
+        mock_create_fetchers,
+        mock_config,
     ):
         """Test that build_application creates and configures an Application."""
         # Setup mocks
         mock_config_instance = Mock()
         mock_config_instance.telegram_token = "test_token"
-        mock_config_instance.get_strategy_list.return_value = ["ipify"]
         mock_config.return_value = mock_config_instance
 
-        mock_fetcher = Mock()
-        mock_create_fetcher.return_value = mock_fetcher
+        mock_fetcher1 = Mock()
+        mock_fetcher1.get_name.return_value = "ipify.org"
+        mock_fetcher2 = Mock()
+        mock_fetcher2.get_name.return_value = "identme"
+        mock_create_fetchers.return_value = [mock_fetcher1, mock_fetcher2]
+
+        mock_orchestrator = Mock()
+        mock_orchestrator_class.return_value = mock_orchestrator
 
         mock_builder = Mock()
         mock_application = Mock()
@@ -38,18 +49,21 @@ class TestBuildApplication:
         # Verify config was loaded
         mock_config.assert_called_once()
 
-        # Verify fetcher was created with first strategy
-        mock_create_fetcher.assert_called_once_with("ipify")
+        # Verify fetchers were created with config
+        mock_create_fetchers.assert_called_once_with(mock_config_instance)
+
+        # Verify orchestrator was created with all fetchers
+        mock_orchestrator_class.assert_called_once_with([mock_fetcher1, mock_fetcher2])
 
         # Verify ApplicationBuilder was configured
         mock_app_builder.assert_called_once()
         mock_builder.token.assert_called_once_with("test_token")
         mock_builder.build.assert_called_once()
 
-        # Verify bot_data was set
+        # Verify bot_data was set with orchestrator
         assert mock_application.bot_data == {
             "config": mock_config_instance,
-            "fetcher": mock_fetcher,
+            "orchestrator": mock_orchestrator,
         }
 
         # Verify handlers were setup
@@ -59,22 +73,35 @@ class TestBuildApplication:
         assert result == mock_application
 
     @patch("ipbot.main.BotConfig")
-    @patch("ipbot.main.create_fetcher")
-    def test_build_application_uses_first_strategy_from_list(
-        self, mock_create_fetcher, mock_config
+    @patch("ipbot.main.create_fetchers")
+    @patch("ipbot.main.ParallelFetchOrchestrator")
+    def test_build_application_uses_create_fetchers(
+        self, mock_orchestrator_class, mock_create_fetchers, mock_config
     ):
-        """Test that build_application uses the first strategy from config list."""
+        """Test that build_application uses create_fetchers function."""
         # Setup mocks
         mock_config_instance = Mock()
         mock_config_instance.telegram_token = "test_token"
-        mock_config_instance.get_strategy_list.return_value = ["ipify", "ifconfigme", "curl"]
         mock_config.return_value = mock_config_instance
+
+        mock_fetcher1 = Mock()
+        mock_fetcher1.get_name.return_value = "fetcher1"
+        mock_fetcher2 = Mock()
+        mock_fetcher2.get_name.return_value = "fetcher2"
+        mock_fetcher3 = Mock()
+        mock_fetcher3.get_name.return_value = "fetcher3"
+        mock_create_fetchers.return_value = [mock_fetcher1, mock_fetcher2, mock_fetcher3]
 
         with patch("ipbot.main.ApplicationBuilder"), patch("ipbot.main.setup_handlers"):
             build_application()
 
-            # Verify only the first strategy was used
-            mock_create_fetcher.assert_called_once_with("ipify")
+            # Verify create_fetchers was called with config
+            mock_create_fetchers.assert_called_once_with(mock_config_instance)
+
+            # Verify orchestrator was created with all fetchers
+            mock_orchestrator_class.assert_called_once_with(
+                [mock_fetcher1, mock_fetcher2, mock_fetcher3]
+            )
 
 
 class TestMain:

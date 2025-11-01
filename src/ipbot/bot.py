@@ -5,6 +5,10 @@ import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
+from ipbot.config import BotConfig
+from ipbot.formatter import ResultFormatter
+from ipbot.orchestrator import ParallelFetchOrchestrator
+
 logger = logging.getLogger(__name__)
 
 
@@ -32,18 +36,19 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def ip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /ip command.
 
-    Fetches the public IP address and sends it to the user if they are authorized.
+    Fetches the public IP address from all enabled fetchers and sends
+    a formatted result to the user if they are authorized.
 
     Args:
         update: The incoming update containing the message.
-        context: The context containing bot_data with config and fetcher.
+        context: The context containing bot_data with config and orchestrator.
     """
     logger.info("ip command called")
     if not update.effective_user or not update.message:
         return
 
-    config = context.bot_data["config"]
-    fetcher = context.bot_data["fetcher"]
+    config: BotConfig = context.bot_data["config"]
+    orchestrator: ParallelFetchOrchestrator = context.bot_data["orchestrator"]
 
     # Check authorization
     if update.effective_user.id != config.telegram_owner_id:
@@ -54,16 +59,17 @@ async def ip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text("Unauthorized")
         return
 
-    # Fetch IP address
-    try:
-        ip_address = await fetcher.get_ip()
-        reply_message = config.server_reply_format.format(ip=ip_address)
-        await update.message.reply_text(reply_message)
-        logger.info(f"Successfully sent IP address to authorized user {update.effective_user.id}")
-    except Exception as e:
-        error_message = f"Could not fetch public IP — reason: {e}"
-        await update.message.reply_text(error_message)
-        logger.error(f"Failed to fetch IP address: {e}", exc_info=True)
+    # Fetch IP addresses from all fetchers
+    fetch_result = await orchestrator.fetch_all()
+
+    # Format and send result
+    reply_message = ResultFormatter().format(fetch_result)
+    await update.message.reply_text(reply_message)
+
+    logger.info(
+        f"Successfully sent IP result to authorized user {update.effective_user.id} "
+        f"(consensus: {fetch_result.consensus_ip}, conflicts: {fetch_result.has_conflicts})"
+    )
 
 
 def setup_handlers(application: Application) -> None:

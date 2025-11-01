@@ -21,3 +21,12 @@ class FetchStrategy(ABC):
             Exception: If the IP address cannot be fetched.
         """
         pass
+
+    @abstractmethod
+    def get_name(self) -> str:
+        """Return the display name for this fetcher.
+
+        Returns:
+            str: The name of the fetcher (e.g., "ipify", "identme").
+        """
+        pass

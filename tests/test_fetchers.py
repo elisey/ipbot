@@ -5,8 +5,10 @@ from unittest.mock import AsyncMock, Mock, patch
 import httpx
 import pytest
 
-from ipbot.factory import create_fetcher
+from ipbot.fetchers.identme import IdentMeStrategy
+from ipbot.fetchers.ifconfig import IfconfigStrategy
 from ipbot.fetchers.ipify import IpifyStrategy
+from ipbot.fetchers.ipinfo import IpinfoStrategy
 
 
 class TestIpifyStrategy:
@@ -118,21 +120,406 @@ class TestIpifyStrategy:
             assert "timeout" in call_kwargs
             assert call_kwargs["timeout"] == 3.0
 
+    def test_get_name(self):
+        """Test that get_name returns correct fetcher name."""
+        strategy = IpifyStrategy()
+        assert strategy.get_name() == "ipify.org"
 
-class TestFactory:
-    """Tests for the IP fetcher factory."""
 
-    def test_create_fetcher_ipify(self):
-        """Test factory creates IpifyStrategy for 'ipify' strategy name."""
-        fetcher = create_fetcher("ipify")
-        assert isinstance(fetcher, IpifyStrategy)
+class TestIfconfigStrategy:
+    """Tests for the IfconfigStrategy IP fetcher."""
 
-    def test_create_fetcher_unknown_strategy(self):
-        """Test factory raises error for unknown strategy name."""
-        with pytest.raises(ValueError, match="Unknown IP fetcher strategy"):
-            create_fetcher("unknown_strategy")
+    @pytest.mark.asyncio
+    async def test_get_ip_success(self):
+        """Test successful IP fetch with plain text response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "203.0.113.42\n"
+        mock_response.raise_for_status = Mock()
 
-    def test_create_fetcher_empty_string(self):
-        """Test factory raises error for empty strategy name."""
-        with pytest.raises(ValueError, match="Unknown IP fetcher strategy"):
-            create_fetcher("")
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IfconfigStrategy()
+            ip = await strategy.get_ip()
+
+            assert ip == "203.0.113.42"
+            mock_client.get.assert_called_once_with("https://ifconfig.me/ip")
+
+    @pytest.mark.asyncio
+    async def test_get_ip_http_error(self):
+        """Test handling of HTTP errors."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.HTTPError("Connection failed")
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IfconfigStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_timeout(self):
+        """Test handling of timeout errors."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.TimeoutException("Request timed out")
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IfconfigStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_invalid_status_code(self):
+        """Test handling of non-200 status codes."""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.raise_for_status = Mock(
+            side_effect=httpx.HTTPStatusError(
+                "Server error", request=Mock(), response=mock_response
+            )
+        )
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IfconfigStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_empty_response(self):
+        """Test handling of empty response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = ""
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IfconfigStrategy()
+
+            with pytest.raises(Exception, match="Invalid response format"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_whitespace_only_response(self):
+        """Test handling of whitespace-only response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "   \n\t  "
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IfconfigStrategy()
+
+            with pytest.raises(Exception, match="Invalid response format"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_client_configured_with_timeout(self):
+        """Test that httpx client is configured with proper timeout."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "203.0.113.42"
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IfconfigStrategy()
+            await strategy.get_ip()
+
+            # Verify AsyncClient was called with timeout parameter
+            mock_client_class.assert_called_once()
+            call_kwargs = mock_client_class.call_args[1]
+            assert "timeout" in call_kwargs
+            assert call_kwargs["timeout"] == 3.0
+
+    def test_get_name(self):
+        """Test that get_name returns correct fetcher name."""
+        strategy = IfconfigStrategy()
+        assert strategy.get_name() == "ifconfig.me"
+
+
+class TestIdentMeStrategy:
+    """Tests for the IdentMeStrategy IP fetcher."""
+
+    @pytest.mark.asyncio
+    async def test_get_ip_success(self):
+        """Test successful IP fetch with plain text response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "203.0.113.42\n"
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IdentMeStrategy()
+            ip = await strategy.get_ip()
+
+            assert ip == "203.0.113.42"
+            mock_client.get.assert_called_once_with("https://4.ident.me/")
+
+    @pytest.mark.asyncio
+    async def test_get_ip_http_error(self):
+        """Test handling of HTTP errors."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.HTTPError("Connection failed")
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IdentMeStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_timeout(self):
+        """Test handling of timeout errors."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.TimeoutException("Request timed out")
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IdentMeStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_invalid_status_code(self):
+        """Test handling of non-200 status codes."""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.raise_for_status = Mock(
+            side_effect=httpx.HTTPStatusError(
+                "Server error", request=Mock(), response=mock_response
+            )
+        )
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IdentMeStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_empty_response(self):
+        """Test handling of empty response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = ""
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IdentMeStrategy()
+
+            with pytest.raises(Exception, match="Invalid response format"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_whitespace_only_response(self):
+        """Test handling of whitespace-only response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "   \n\t  "
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IdentMeStrategy()
+
+            with pytest.raises(Exception, match="Invalid response format"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_client_configured_with_timeout(self):
+        """Test that httpx client is configured with proper timeout."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "203.0.113.42"
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IdentMeStrategy()
+            await strategy.get_ip()
+
+            # Verify AsyncClient was called with timeout parameter
+            mock_client_class.assert_called_once()
+            call_kwargs = mock_client_class.call_args[1]
+            assert "timeout" in call_kwargs
+            assert call_kwargs["timeout"] == 3.0
+
+    def test_get_name(self):
+        """Test that get_name returns correct fetcher name."""
+        strategy = IdentMeStrategy()
+        assert strategy.get_name() == "ident.me"
+
+
+class TestIpinfoStrategy:
+    """Tests for the IpinfoStrategy IP fetcher."""
+
+    @pytest.mark.asyncio
+    async def test_get_ip_success(self):
+        """Test successful IP fetch with plain text response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "203.0.113.42\n"
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IpinfoStrategy()
+            ip = await strategy.get_ip()
+
+            assert ip == "203.0.113.42"
+            mock_client.get.assert_called_once_with("https://ipinfo.io/ip")
+
+    @pytest.mark.asyncio
+    async def test_get_ip_http_error(self):
+        """Test handling of HTTP errors."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.HTTPError("Connection failed")
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IpinfoStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_timeout(self):
+        """Test handling of timeout errors."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.TimeoutException("Request timed out")
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IpinfoStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_invalid_status_code(self):
+        """Test handling of non-200 status codes."""
+        mock_response = Mock()
+        mock_response.status_code = 500
+        mock_response.raise_for_status = Mock(
+            side_effect=httpx.HTTPStatusError(
+                "Server error", request=Mock(), response=mock_response
+            )
+        )
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IpinfoStrategy()
+
+            with pytest.raises(Exception, match="Failed to fetch IP"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_empty_response(self):
+        """Test handling of empty response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = ""
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IpinfoStrategy()
+
+            with pytest.raises(Exception, match="Invalid response format"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_get_ip_whitespace_only_response(self):
+        """Test handling of whitespace-only response."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "   \n\t  "
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IpinfoStrategy()
+
+            with pytest.raises(Exception, match="Invalid response format"):
+                await strategy.get_ip()
+
+    @pytest.mark.asyncio
+    async def test_client_configured_with_timeout(self):
+        """Test that httpx client is configured with proper timeout."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.text = "203.0.113.42"
+        mock_response.raise_for_status = Mock()
+
+        with patch("httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client_class.return_value.__aenter__.return_value = mock_client
+
+            strategy = IpinfoStrategy()
+            await strategy.get_ip()
+
+            # Verify AsyncClient was called with timeout parameter
+            mock_client_class.assert_called_once()
+            call_kwargs = mock_client_class.call_args[1]
+            assert "timeout" in call_kwargs
+            assert call_kwargs["timeout"] == 3.0
+
+    def test_get_name(self):
+        """Test that get_name returns correct fetcher name."""
+        strategy = IpinfoStrategy()
+        assert strategy.get_name() == "ipinfo.io"

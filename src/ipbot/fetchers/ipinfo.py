@@ -1,22 +1,22 @@
-"""IP fetching strategy using the ipify.org API."""
+"""IP fetching strategy using the ipinfo.io API."""
 
 from ipbot.fetchers.base import FetchStrategy
 from ipbot.fetchers.exceptions import FetcherParsingError
 from ipbot.fetchers.http_fetcher import HttpFetcher
 
 
-class IpifyStrategy(FetchStrategy):
-    """Fetch public IP address using the ipify.org API.
+class IpinfoStrategy(FetchStrategy):
+    """Fetch public IP address using the ipinfo.io API.
 
-    This strategy uses the ipify.org JSON API endpoint to fetch
+    This strategy uses the ipinfo.io plain text API endpoint to fetch
     the public IP address with a 3-second timeout.
     """
 
-    IPIFY_URL = "https://api.ipify.org?format=json"
+    IPINFO_URL = "https://ipinfo.io/ip"
     TIMEOUT = 3.0
 
     async def get_ip(self) -> str:
-        """Fetch and return the public IP address from ipify.org.
+        """Fetch and return the public IP address from ipinfo.io.
 
         Returns:
             str: The public IP address as a string.
@@ -27,21 +27,19 @@ class IpifyStrategy(FetchStrategy):
             FetcherParsingError: If the response format is invalid.
         """
         http_fetcher = HttpFetcher(timeout=self.TIMEOUT)
-        response = await http_fetcher.fetch(self.IPIFY_URL, self.get_name())
+        response = await http_fetcher.fetch(self.IPINFO_URL, self.get_name())
 
-        data = response.json()
+        ip_address = response.text.strip()
 
-        if "ip" not in data:
-            raise FetcherParsingError(
-                f"Invalid response format from ipify: missing 'ip' field in {data}"
-            )
+        if not ip_address:
+            raise FetcherParsingError("Invalid response format from ipinfo.io: empty response")
 
-        return data["ip"]
+        return ip_address
 
     def get_name(self) -> str:
         """Return the display name for this fetcher.
 
         Returns:
-            str: The name "ipify".
+            str: The name "ipinfo".
         """
-        return "ipify.org"
+        return "ipinfo.io"

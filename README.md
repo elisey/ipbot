@@ -4,14 +4,16 @@
 
 A simple async Telegram bot that responds to the `/ip` command with the public IP address of the server where the bot is running.
 
-The bot fetches the address using external IP detection services (like api.ipify.org), works behind NAT, and restricts access to a single authorized Telegram user defined in the configuration file.
+The bot fetches the address using multiple external IP detection services in parallel for reliability, works behind NAT, and restricts access to a single authorized Telegram user defined in the configuration file.
 
 ![chat](doc/chat.png)
 
 ## Features
 
 - Async Telegram bot using python-telegram-bot
-- Fetches public IP from ipify API
+- **Resilient parallel fetching** from multiple IP providers (ipify.org, ident.me, ifconfig.me, ipinfo.io)
+- **Consensus-based validation** - shows IP only when all providers agree
+- **Detailed status view** - shows each provider's result with color-coded indicators
 - Authorization based on Telegram user ID
 - Dockerized deployment
 - Configuration via environment variables
@@ -110,8 +112,43 @@ The bot is configured via environment variables in the `.env` file:
 
 - `TELEGRAM_TOKEN` (required): Your bot token from @BotFather
 - `TELEGRAM_OWNER_ID` (required): Your Telegram user ID - only this user can use the bot
-- `FETCHER_STRATEGY_ORDER` (optional): IP fetching strategy, default: `ipify`
-- `SERVER_REPLY_FORMAT` (optional): Message format, default: `🌐 Your public IP is: {ip}`
+- `FETCHER_STRATEGY_ORDER` (optional): IP fetchers to use, default: `all`
+
+### Available IP Fetchers
+
+The bot supports multiple IP detection providers:
+
+- `ipify` - ipify.org JSON API
+- `identme` - ident.me plain text API
+- `ifconfig` - ifconfig.me plain text API
+- `ipinfo` - ipinfo.io plain text API
+- `custom` - custom plain text API
+
+**Example configurations:**
+
+```bash
+# Use all fetchers (default - most reliable)
+FETCHER_STRATEGY_ORDER=all
+
+# Use specific fetchers only
+FETCHER_STRATEGY_ORDER=ipify,identme,ifconfig
+
+# Use only two fetchers
+FETCHER_STRATEGY_ORDER=ipify,identme
+
+# Use single fetcher (less reliable)
+FETCHER_STRATEGY_ORDER=ipify
+```
+
+**The `all` keyword:** When you set `FETCHER_STRATEGY_ORDER=all`, the bot automatically uses all available IP providers. This is the recommended configuration as it provides maximum reliability. If you add new custom fetchers to your deployment, they will automatically be included when using `all`.
+
+### How the Bot Works
+
+The bot fetches your IP from **all configured providers in parallel**:
+
+1. **All providers agree** → Shows your IP with green checkmarks ✅
+2. **Some providers fail** → Shows IP if remaining providers agree, marks failures with ❌
+3. **Providers return different IPs** → Shows "unknown" and displays all results with ⚠️
 
 ## Troubleshooting
 

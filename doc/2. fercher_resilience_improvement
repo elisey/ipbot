@@ -1,0 +1,54 @@
+Reworking main fetching logic
+
+Use all fetchers which are enabled in config
+fetch in parallel (async)
+
+compare the results. here we have 2 options
+option1:
+all results are the same
+then
+print ip address (through template) to the user
+
+option 2:
+some fetchers failed or some ip addresses are not the same
+then
+print result breakdown. For each fetcher print its ip address of error if it failed (network or parsing or any other error)
+
+move template from config to template files
+We will have 2 template files: for option 1 and option 2
+
+
+Change of fetching logic. Check if all fetchers are the same - only for not failed fetchers. If fetcher failed - skip it and reflect
+We are going away from wwo options for view - optimistic and breakdown.
+
+# All works. List all fetchers with green emoji near each and write ip addres at the top
+
+🌐 IP address: 10.10.10.1
+
+🟢 identme
+🟢 ifconfig
+🟢 ipify
+🟢 ipinfo
+
+# Some timeouts. Mark failed fetcher with red cross and add error name
+
+🌐 IP address: 10.10.10.1
+
+🟢 identme
+❌ ifconfig: Timeout
+🟢 ipify
+🟢 ipinfo
+
+# Different results. If ip addresses for not failed fetchers are not the same - mark them with yellow cicle emoji. Ip address at the top is unknown.
+
+🌐 IP address: unknown
+
+🟡 identme: 10.10.10.1
+❌ ifconfig: Parsing error
+🟡 ipify: Network error
+🟡 ipinfo: 180.3.3.5
+
+Configuration Updates
+Do not extend the configuration. We already have there fetchers list. this is enough
+
+Suggest different ways other than templates if nessesary. Logic can be incaplusated in separate class

@@ -68,9 +68,23 @@ Add the following configuration:
 ```bash
 TELEGRAM_TOKEN=your_bot_token_from_botfather
 TELEGRAM_OWNER_ID=your_telegram_user_id
-FETCHER_STRATEGY_ORDER=ipify
-SERVER_REPLY_FORMAT=🌐 Your public IP is: {ip}
+FETCHER_STRATEGY_ORDER=all
 ```
+
+**Configuration Options:**
+
+- `TELEGRAM_TOKEN` (required): Your bot token from @BotFather
+- `TELEGRAM_OWNER_ID` (required): Your Telegram user ID
+- `FETCHER_STRATEGY_ORDER` (optional): IP fetchers to use, default: `all`
+
+The bot uses multiple IP providers in parallel for reliability. Available providers:
+- `ipify` - ipify.org JSON API
+- `identme` - ident.me plain text API
+- `ifconfig` - ifconfig.me plain text API
+- `ipinfo` - ipinfo.io plain text API
+- `custom` - custom plain text API
+
+**Using the `all` keyword (recommended):** Set `FETCHER_STRATEGY_ORDER=all` to automatically use all available IP providers. This provides maximum reliability and will automatically include any new custom fetchers you add.
 
 **Security:** Set proper file permissions:
 
