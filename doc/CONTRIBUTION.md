@@ -298,38 +298,7 @@ task dev  # Look for error messages
 
 ## Release Process
 
-This project uses automated releases via GitHub Actions. When you push a version tag, the workflow automatically builds and publishes Docker images to GitHub Container Registry.
-
-### Creating a New Release
-
-1. **Ensure all changes are committed and pushed to main:**
-   ```bash
-   git status
-   git push
-   ```
-
-2. **Create and push a version tag:**
-   ```bash
-   # Create a tag (use semantic versioning: v0.1.0, v1.2.3, etc.)
-   git tag v0.1.1
-
-   # Push the tag to trigger the release workflow
-   git push origin v0.1.1
-   ```
-
-3. **Monitor the workflow:**
-   - Visit: `https://github.com/elisey/ipbot/actions`
-   - The "Release - Docker Build and Publish" workflow will automatically:
-     - Build the Docker image
-     - Push to GitHub Container Registry with two tags:
-       - Semantic version (e.g., `0.1.1`)
-       - `latest`
-
-4. **Published images will be available at:**
-   ```
-   ghcr.io/elisey/ipbot:0.1.1
-   ghcr.io/elisey/ipbot:latest
-   ```
+For detailed instructions on creating and publishing releases, see the [Release Guide](RELEASE.md).
 
 ## Testing Your Changes with Docker
 
