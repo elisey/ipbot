@@ -8,8 +8,7 @@ class BotConfig(BaseSettings):
 
     telegram_token: str
     telegram_owner_id: int
-    fetcher_strategy_order: str = "ipify"
-    server_reply_format: str = "🌐 Your public IP is: {ip}"
+    fetcher_strategy_order: str = "all"
 
     def get_strategy_list(self) -> list[str]:
         return [s.strip() for s in self.fetcher_strategy_order.split(",") if s.strip()]

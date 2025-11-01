@@ -5,7 +5,6 @@ from unittest.mock import AsyncMock, Mock, patch
 import httpx
 import pytest
 
-from ipbot.factory import create_fetcher
 from ipbot.fetchers.identme import IdentMeStrategy
 from ipbot.fetchers.ifconfig import IfconfigStrategy
 from ipbot.fetchers.ipify import IpifyStrategy
@@ -120,6 +119,11 @@ class TestIpifyStrategy:
             call_kwargs = mock_client_class.call_args[1]
             assert "timeout" in call_kwargs
             assert call_kwargs["timeout"] == 3.0
+
+    def test_get_name(self):
+        """Test that get_name returns correct fetcher name."""
+        strategy = IpifyStrategy()
+        assert strategy.get_name() == "ipify.org"
 
 
 class TestIfconfigStrategy:
@@ -249,6 +253,11 @@ class TestIfconfigStrategy:
             assert "timeout" in call_kwargs
             assert call_kwargs["timeout"] == 3.0
 
+    def test_get_name(self):
+        """Test that get_name returns correct fetcher name."""
+        strategy = IfconfigStrategy()
+        assert strategy.get_name() == "ifconfig.me"
+
 
 class TestIdentMeStrategy:
     """Tests for the IdentMeStrategy IP fetcher."""
@@ -376,6 +385,11 @@ class TestIdentMeStrategy:
             call_kwargs = mock_client_class.call_args[1]
             assert "timeout" in call_kwargs
             assert call_kwargs["timeout"] == 3.0
+
+    def test_get_name(self):
+        """Test that get_name returns correct fetcher name."""
+        strategy = IdentMeStrategy()
+        assert strategy.get_name() == "ident.me"
 
 
 class TestIpinfoStrategy:
@@ -505,36 +519,7 @@ class TestIpinfoStrategy:
             assert "timeout" in call_kwargs
             assert call_kwargs["timeout"] == 3.0
 
-
-class TestFactory:
-    """Tests for the IP fetcher factory."""
-
-    def test_create_fetcher_identme(self):
-        """Test factory creates IdentMeStrategy for 'identme' strategy name."""
-        fetcher = create_fetcher("identme")
-        assert isinstance(fetcher, IdentMeStrategy)
-
-    def test_create_fetcher_ifconfig(self):
-        """Test factory creates IfconfigStrategy for 'ifconfig' strategy name."""
-        fetcher = create_fetcher("ifconfig")
-        assert isinstance(fetcher, IfconfigStrategy)
-
-    def test_create_fetcher_ipify(self):
-        """Test factory creates IpifyStrategy for 'ipify' strategy name."""
-        fetcher = create_fetcher("ipify")
-        assert isinstance(fetcher, IpifyStrategy)
-
-    def test_create_fetcher_ipinfo(self):
-        """Test factory creates IpinfoStrategy for 'ipinfo' strategy name."""
-        fetcher = create_fetcher("ipinfo")
-        assert isinstance(fetcher, IpinfoStrategy)
-
-    def test_create_fetcher_unknown_strategy(self):
-        """Test factory raises error for unknown strategy name."""
-        with pytest.raises(ValueError, match="Unknown IP fetcher strategy"):
-            create_fetcher("unknown_strategy")
-
-    def test_create_fetcher_empty_string(self):
-        """Test factory raises error for empty strategy name."""
-        with pytest.raises(ValueError, match="Unknown IP fetcher strategy"):
-            create_fetcher("")
+    def test_get_name(self):
+        """Test that get_name returns correct fetcher name."""
+        strategy = IpinfoStrategy()
+        assert strategy.get_name() == "ipinfo.io"

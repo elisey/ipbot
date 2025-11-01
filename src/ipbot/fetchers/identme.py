@@ -27,7 +27,7 @@ class IdentMeStrategy(FetchStrategy):
             FetcherParsingError: If the response format is invalid.
         """
         http_fetcher = HttpFetcher(timeout=self.TIMEOUT)
-        response = await http_fetcher.fetch(self.IDENTME_URL, "ident.me")
+        response = await http_fetcher.fetch(self.IDENTME_URL, self.get_name)
 
         ip_address = response.text.strip()
 
@@ -35,3 +35,11 @@ class IdentMeStrategy(FetchStrategy):
             raise FetcherParsingError("Invalid response format from ident.me: empty response")
 
         return ip_address
+
+    def get_name(self) -> str:
+        """Return the display name for this fetcher.
+
+        Returns:
+            str: The name "identme".
+        """
+        return "ident.me"

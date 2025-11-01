@@ -27,7 +27,7 @@ class IpifyStrategy(FetchStrategy):
             FetcherParsingError: If the response format is invalid.
         """
         http_fetcher = HttpFetcher(timeout=self.TIMEOUT)
-        response = await http_fetcher.fetch(self.IPIFY_URL, "ipify")
+        response = await http_fetcher.fetch(self.IPIFY_URL, self.get_name())
 
         data = response.json()
 
@@ -37,3 +37,11 @@ class IpifyStrategy(FetchStrategy):
             )
 
         return data["ip"]
+
+    def get_name(self) -> str:
+        """Return the display name for this fetcher.
+
+        Returns:
+            str: The name "ipify".
+        """
+        return "ipify.org"

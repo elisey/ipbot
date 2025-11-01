@@ -6,8 +6,9 @@ from telegram.ext import Application, ApplicationBuilder
 
 from ipbot.bot import setup_handlers
 from ipbot.config import BotConfig
-from ipbot.factory import create_fetcher
+from ipbot.factory import create_fetchers
 from ipbot.logger import setup_logging
+from ipbot.orchestrator import ParallelFetchOrchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -22,17 +23,21 @@ def build_application() -> Application:
     config = BotConfig()
     logger.info("Configuration loaded successfully")
 
-    # Create IP fetcher using first strategy from config
-    strategy_list = config.get_strategy_list()
-    fetcher = create_fetcher(strategy_list[0])
-    logger.info(f"IP fetcher initialized with strategy: {strategy_list[0]}")
+    # Create IP fetchers for all strategies from config
+    fetchers = create_fetchers(config)
+    fether_names = (f.get_name() for f in fetchers)
+    logger.info(f"IP fetchers initialized with strategies: {', '.join(fether_names)}")
+
+    # Create orchestrator for parallel fetching
+    orchestrator = ParallelFetchOrchestrator(fetchers)
+    logger.info(f"Parallel fetch orchestrator created with {len(fetchers)} fetchers")
 
     # Build application
     application = ApplicationBuilder().token(config.telegram_token).build()
 
-    # Store config and fetcher in bot_data for access in handlers
+    # Store config and orchestrator in bot_data for access in handlers
     application.bot_data["config"] = config
-    application.bot_data["fetcher"] = fetcher
+    application.bot_data["orchestrator"] = orchestrator
 
     # Register command handlers
     setup_handlers(application)

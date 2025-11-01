@@ -27,7 +27,7 @@ class IpinfoStrategy(FetchStrategy):
             FetcherParsingError: If the response format is invalid.
         """
         http_fetcher = HttpFetcher(timeout=self.TIMEOUT)
-        response = await http_fetcher.fetch(self.IPINFO_URL, "ipinfo.io")
+        response = await http_fetcher.fetch(self.IPINFO_URL, self.get_name())
 
         ip_address = response.text.strip()
 
@@ -35,3 +35,11 @@ class IpinfoStrategy(FetchStrategy):
             raise FetcherParsingError("Invalid response format from ipinfo.io: empty response")
 
         return ip_address
+
+    def get_name(self) -> str:
+        """Return the display name for this fetcher.
+
+        Returns:
+            str: The name "ipinfo".
+        """
+        return "ipinfo.io"
