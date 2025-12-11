@@ -17,3 +17,6 @@ def setup_logging(level: int = logging.INFO) -> None:
         stream=sys.stdout,
         force=True,
     )
+
+    # Suppress verbose httpx logs
+    logging.getLogger("httpx").setLevel(logging.WARNING)

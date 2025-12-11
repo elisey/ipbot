@@ -7,7 +7,11 @@
       "Bash(task check:*)",
       "Bash(task format)",
       "Bash(task fix:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(docker run --rm ipbot:test sh -c \"ls -la /proc/1/\")",
+      "Bash(docker run:*)",
+      "Bash(docker inspect:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
