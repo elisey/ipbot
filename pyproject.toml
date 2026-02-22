@@ -1,6 +1,6 @@
 [project]
 name = "ipbot"
-version = "0.4.3"
+version = "0.4.4"
 description = "Async Telegram bot that responds to /ip command with your public IP address"
 readme = "README.md"
 license = "MIT"
