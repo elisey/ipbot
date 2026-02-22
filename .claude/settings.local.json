@@ -11,7 +11,13 @@
       "Bash(docker run --rm ipbot:test sh -c \"ls -la /proc/1/\")",
       "Bash(docker run:*)",
       "Bash(docker inspect:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(uv pip list:*)",
+      "WebFetch(domain:pypi.org)",
+      "Bash(uv pip show:*)",
+      "Bash(uv lock:*)"
     ],
     "deny": [],
     "ask": []
