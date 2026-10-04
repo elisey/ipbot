@@ -1,12 +1,14 @@
 """Tests for Telegram bot handlers."""
 
+import logging
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 from telegram import Update, User
+from telegram.error import NetworkError, TelegramError
 from telegram.ext import ContextTypes
 
-from ipbot.bot import ip_command, setup_handlers
+from ipbot.bot import error_handler, ip_command, setup_handlers
 from ipbot.result import FetcherResult, FetchResult
 
 
@@ -165,6 +167,60 @@ class TestIpCommand:
         mock_update.message.reply_text.assert_called_once_with(expected_message)
 
 
+class TestErrorHandler:
+    """Tests for the error handler."""
+
+    @pytest.mark.asyncio
+    async def test_network_error_logged_as_warning_without_traceback(self, caplog):
+        """Test that a transient network error is logged as a warning."""
+        mock_context = Mock(spec=ContextTypes.DEFAULT_TYPE)
+        mock_context.error = NetworkError("Bad Gateway")
+
+        with caplog.at_level(logging.DEBUG, logger="ipbot.bot"):
+            await error_handler(None, mock_context)
+
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelno == logging.WARNING
+        assert "Bad Gateway" in record.message
+        assert record.exc_info is None
+
+    @pytest.mark.asyncio
+    async def test_other_error_logged_with_traceback(self, caplog):
+        """Test that a non-network error is logged with its traceback."""
+        error = ValueError("boom")
+
+        mock_update = Mock(spec=Update)
+        mock_context = Mock(spec=ContextTypes.DEFAULT_TYPE)
+        mock_context.error = error
+
+        with caplog.at_level(logging.DEBUG, logger="ipbot.bot"):
+            await error_handler(mock_update, mock_context)
+
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelno == logging.ERROR
+        assert record.exc_info is not None
+        assert record.exc_info[1] is error
+
+    @pytest.mark.asyncio
+    async def test_telegram_error_logged_with_traceback(self, caplog):
+        """Test that a non-network Telegram error is logged with its traceback."""
+        error = TelegramError("Unauthorized")
+
+        mock_context = Mock(spec=ContextTypes.DEFAULT_TYPE)
+        mock_context.error = error
+
+        with caplog.at_level(logging.DEBUG, logger="ipbot.bot"):
+            await error_handler(None, mock_context)
+
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelno == logging.ERROR
+        assert record.exc_info is not None
+        assert record.exc_info[1] is error
+
+
 class TestSetupHandlers:
     """Tests for handler registration."""
 
@@ -184,3 +240,11 @@ class TestSetupHandlers:
         for call in calls:
             handler = call[0][0]
             assert isinstance(handler, CommandHandler)
+
+    def test_setup_handlers_registers_error_handler(self):
+        """Test that setup_handlers registers the error handler."""
+        mock_application = Mock()
+
+        setup_handlers(mock_application)
+
+        mock_application.add_error_handler.assert_called_once_with(error_handler)

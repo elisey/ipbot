@@ -3,6 +3,7 @@
 import logging
 
 from telegram import Update
+from telegram.error import NetworkError
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 from ipbot.config import BotConfig
@@ -72,6 +73,26 @@ async def ip_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     )
 
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle errors raised while polling for or processing updates.
+
+    Transient network errors are expected with long polling and are retried
+    automatically by the library, so they are logged as warnings without a
+    traceback. Any other error is logged with full traceback.
+
+    Args:
+        update: The update being processed, or None for polling errors.
+        context: The context whose error attribute holds the raised exception.
+    """
+    error = context.error
+
+    if isinstance(error, NetworkError):
+        logger.warning(f"Transient network error, will retry: {error}")
+        return
+
+    logger.error(f"Unhandled exception while processing update: {update}", exc_info=error)
+
+
 def setup_handlers(application: Application) -> None:
     """Register command handlers with the application.
 
@@ -80,4 +101,5 @@ def setup_handlers(application: Application) -> None:
     """
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("ip", ip_command))
+    application.add_error_handler(error_handler)
     logger.info("Registered /ip command handler")

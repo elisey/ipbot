@@ -107,9 +107,10 @@ class TestBuildApplication:
 class TestMain:
     """Tests for the main function."""
 
+    @patch("ipbot.main.setup_logging")
     @patch("ipbot.main.build_application")
     @patch("ipbot.main.logger")
-    def test_main_runs_application(self, mock_logger, mock_build_app):
+    def test_main_runs_application(self, mock_logger, mock_build_app, mock_setup_logging):
         """Test that main builds and runs the application."""
         # Setup mocks
         mock_application = Mock()
@@ -128,9 +129,10 @@ class TestMain:
         # Verify logging occurred
         assert mock_logger.info.call_count >= 1
 
+    @patch("ipbot.main.setup_logging")
     @patch("ipbot.main.build_application")
     @patch("ipbot.main.logger")
-    def test_main_logs_startup(self, mock_logger, mock_build_app):
+    def test_main_logs_startup(self, mock_logger, mock_build_app, mock_setup_logging):
         """Test that main logs startup message."""
         # Setup mocks
         mock_application = Mock()
@@ -146,9 +148,10 @@ class TestMain:
         ]
         assert len(startup_calls) > 0
 
+    @patch("ipbot.main.setup_logging")
     @patch("ipbot.main.build_application")
     @patch("ipbot.main.logger")
-    def test_main_logs_shutdown(self, mock_logger, mock_build_app):
+    def test_main_logs_shutdown(self, mock_logger, mock_build_app, mock_setup_logging):
         """Test that main logs shutdown message."""
         # Setup mocks
         mock_application = Mock()
@@ -163,3 +166,25 @@ class TestMain:
             call for call in mock_logger.info.call_args_list if "shutdown" in str(call).lower()
         ]
         assert len(shutdown_calls) > 0
+
+    @patch("ipbot.main.setup_logging")
+    @patch("ipbot.main.build_application")
+    def test_main_configures_logging(self, mock_build_app, mock_setup_logging):
+        """Test that main configures logging before building the application."""
+        # Setup mocks
+        mock_application = Mock()
+        mock_application.run_polling = Mock()
+        mock_build_app.return_value = mock_application
+
+        call_order = []
+        mock_setup_logging.side_effect = lambda: call_order.append("setup_logging")
+        mock_build_app.side_effect = lambda: (
+            call_order.append("build_application") or (mock_application)
+        )
+
+        # Call main
+        main()
+
+        # Verify logging was configured before the application was built
+        mock_setup_logging.assert_called_once()
+        assert call_order == ["setup_logging", "build_application"]

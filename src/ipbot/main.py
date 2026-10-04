@@ -48,8 +48,11 @@ def build_application() -> Application:
 def main() -> None:
     """Run the Telegram bot application.
 
-    This is the main entry point that starts the bot using long polling.
+    This is the main entry point that configures logging and starts the bot
+    using long polling.
     """
+    setup_logging()
+
     logger.info("Starting Telegram IP Bot...")
 
     # Build the application
@@ -63,8 +66,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # Setup logging
-    setup_logging()
-
-    # Run the bot
     main()
